@@ -1,0 +1,93 @@
+This is a mirror of http://www.vim.org/scripts/script.php?script_id=4140
+
+DESCRIPTION
+This plugin offers mappings to quickly duplicate and move lines to above /
+below the current line. A [count] either specifies the number of lines, or the
+relative visible target line, therefore it's especially easy to clone lines
+when 'relativenumber' is set.
+The mappings can save you several keystrokes over an explicit dd/
+yy[{motion}, ...]p sequence in cases where the other lines are nearby and
+visible in the current window.
+
+Oftentimes, duplication in source code is a code smell. Please use this plugin
+responsibly ;-)
+
+RELATED WORKS
+- Idea, design and implementation of the [<Space> and [e mappings are based on
+  Tim Pope's unimpaired.vim plugin (vimscript #1590). In addition, unimpaired
+  provides other, unrelated functionality (all via [... / ]... mappings), but
+  doesn't offer customization of the mappings.
+
+USAGE
+[<Space>                Add [count] blank lines above the current line / above
+                        the start of the selection.
+]<Space>                Add [count] blank lines below the current line / below
+                        the end of the selection.
+
+[e                      Move the current line / selection [count] lines above.
+]e                      Move the current line / selection [count] lines below.
+
+[E                      Exchange the current line with the line / closed fold
+                        [count] lines above.
+                        Exchange the current closed fold with the same amount
+                        of visible lines as are in the fold, [count] lines
+                        above.
+{Visual}[E              Exchange the selection with the same amount of visible
+                        lines located [count] lines above.
+]E                      Exchange the current line with the line / closed fold
+                        [count] lines below.
+                        Exchange the current closed fold with the same amount
+                        of visible lines as are in the fold, [count] lines
+                        below.
+{Visual}]E              Exchange the selection with the same amount of visible
+                        lines located [count] lines below.
+
+[d                      Duplicate the current line / selection directly
+                        above / across [count] lines above the current line /
+                        above the start of the selection.
+]d                      Duplicate the current line / selection directly
+                        below / across [count] lines below the current line /
+                        below the end of the selection.
+
+[D                      Duplicate the current  / [count] lines to above the
+                        current line.
+{Visual}[D              Duplicate the selection [count] times above the
+                        selection.
+]D                      Duplicate the current  / [count] lines to below that
+                        range.
+{Visual}]D              Duplicate the selection [count] times below the
+                        selection.
+
+[f                      Fetch the line [count] visible lines below the current
+                        line and duplicate it below the current line.
+]f                      Fetch the line [count] visible lines above the current
+                        line and duplicate it below the current line.
+{Visual}[f              Fetch the same number of visible lines starting from
+                        the line [count] lines below the current line and
+                        duplicate them above the start of the selection.
+{Visual}]f              Fetch the same number of visible lines starting from
+                        the line [count] lines above the current line and
+                        duplicate them below the end of the selection.
+
+[r                      Fetch the line [count] visible lines below the current
+                        line and replace the current line with it.
+]r                      Fetch the line [count] visible lines above the current
+                        line and replace the current line with it.
+{Visual}[r              Replace the selection with the same number of visible
+                        lines fetched starting from the line [count] lines
+                        below the current line.
+{Visual}]r              Replace the selection with the same number of visible
+                        lines fetched starting from the line [count] lines
+                        above the current line.
+
+
+                        When the cursor is on a closed fold or the selection
+                        contains a closed fold, the entire set of folded lines
+                        is used. All mappings treat closed folds as a fixed
+                        entity, so they will never move / duplicate into a
+                        closed fold, always over it.
+                        A [count] specifies visible lines, closed folds are
+                        counted as one line, so you can use the
+                        'relativenumber' column to easily reach a target.
+                        (Except for v_[d and v_]d when at the opposite
+                        side of the selection.)
