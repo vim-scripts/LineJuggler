@@ -11,6 +11,23 @@
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 "
 " REVISION	DATE		REMARKS
+"   1.10.006	23-Jul-2012	Extract s:PutWrapper() to apply the "empty last
+"				element" workaround consistently to all
+"				instances of :put use (which as previously
+"				missed for s:Replace()).
+"				CHG: Split [f and {Visual}[f behaviors into two
+"				families of mappings:
+"				a) [f to fetch below current line and {Visual}[f
+"				to fetch selected number of lines above/below
+"				selection
+"				b) [r to fetch and replace current line /
+"				selection.
+"				The renamed LineJuggler#VisualRepFetch() uses
+"				s:RepFetch() instead of the (similar)
+"				LineJuggler#Dup() function.
+"				s:Replace() takes optional register argument to
+"				store the deleted lines in; defaults to black
+"				hole register.
 "   1.00.005	20-Jul-2012	FIX: Implement clipping for ]D.
 "   1.00.004	19-Jul-2012	FIX: Clipping for ]E must consider the amount of
 "				lines of the source fold and subtract them from
@@ -143,13 +160,25 @@ function! LineJuggler#VisualMove( direction, mapSuffix )
     \)
 endfunction
 
-function! s:Replace( startLnum, endLnum, lines )
-    silent execute printf('%s,%sdelete _', a:startLnum, a:endLnum)
-    if a:startLnum == line('$') + 1
-	silent execute (a:startLnum - 1) . 'put =a:lines'
-    else
-	silent execute a:startLnum . 'put! =a:lines'
+function! s:PutWrapper( lnum, putCommand, lines )
+    if type(a:lines) == type([]) && len(a:lines) > 1 && empty(a:lines[-1])
+	" XXX: Vim omits an empty last element when :put'ting a List of lines.
+	" We can work around that by putting a newline character instead.
+	let a:lines[-1] = "\n"
     endif
+
+    silent execute a:lnum . a:putCommand '=a:lines'
+endfunction
+function! s:PutBefore( lnum, lines )
+    if a:lnum == line('$') + 1
+	call s:PutWrapper((a:lnum - 1), 'put',  a:lines)
+    else
+	call s:PutWrapper(a:lnum, 'put!',  a:lines)
+    endif
+endfunction
+function! s:Replace( startLnum, endLnum, lines, ... )
+    silent execute printf('%s,%sdelete %s', a:startLnum, a:endLnum, (a:0 ? a:1 : '_'))
+    call s:PutBefore(a:startLnum, a:lines)
 endfunction
 function! s:DoSwap( sourceStartLnum, sourceEndLnum, targetStartLnum, targetEndLnum )
     if  a:sourceStartLnum <= a:targetStartLnum && a:sourceEndLnum >= a:targetStartLnum ||
@@ -207,18 +236,12 @@ function! LineJuggler#VisualSwap( direction, mapSuffix )
 endfunction
 
 function! LineJuggler#Dup( insLnum, lines, isUp, offset, count, mapSuffix )
-    if type(a:lines) == type([]) && len(a:lines) > 1 && empty(a:lines[-1])
-	" XXX: Vim omits an empty last element when :put'ting a List of lines.
-	" We can work around that by putting a newline character instead.
-	let a:lines[-1] = "\n"
-    endif
-
     if a:isUp
 	let l:lnum = max([0, a:insLnum - a:offset + 1])
-	execute l:lnum . 'put! =a:lines'
+	call s:PutWrapper(l:lnum, 'put!', a:lines)
     else
 	let l:lnum = min([line('$'), a:insLnum + a:offset - 1])
-	execute l:lnum . 'put =a:lines'
+	call s:PutWrapper(l:lnum, 'put', a:lines)
     endif
 
     silent! call       repeat#set("\<Plug>(LineJugglerDup" . a:mapSuffix . ')', a:count)
@@ -251,24 +274,21 @@ function! LineJuggler#DupFetch( count, direction, mapSuffix )
 	let l:address = LineJuggler#ClipAddress(ingowindow#RelativeWindowLine(line('.'), a:count, -1), a:direction, 1)
 	if l:address == -1 | return | endif
 	let l:endAddress = LineJuggler#ClipAddress(ingowindow#RelativeWindowLine(line('.'), a:count, -1, 1), a:direction, 1)
-	let l:lines = getline(l:address, l:endAddress)
 	let l:count = a:count
     else
 	let l:address = LineJuggler#ClipAddress(ingowindow#RelativeWindowLine(line('.'), a:count, 1, -1), a:direction, 1)
 	if l:address == -1 | return | endif
 	let l:endAddress = LineJuggler#ClipAddress(ingowindow#RelativeWindowLine(line('.'), a:count, 1), a:direction, 1)
-	let l:lines = getline(l:address, l:endAddress)
 	" Note: To repeat with the following line, we need to increase v:count by one.
 	let l:count = a:count + 1
     endif
     call LineJuggler#Dup(
     \   LineJuggler#FoldClosedEnd(),
-    \   l:lines,
+    \   getline(l:address, l:endAddress),
     \   0, 1, l:count,
     \   a:mapSuffix
     \)
 endfunction
-
 function! LineJuggler#VisualDupFetch( direction, mapSuffix )
     let l:count = v:count1
     " With :<C-u>, we're always in the first line of the selection. To get the
@@ -280,15 +300,55 @@ function! LineJuggler#VisualDupFetch( direction, mapSuffix )
     let l:targetStartLnum = ingowindow#RelativeWindowLine(line('.'), l:count, a:direction, -1)
     let l:lines = getline(l:targetStartLnum, ingowindow#RelativeWindowLine(l:targetStartLnum, line("'>") - line("'<"), 1))
 
-    silent execute "'<,'>delete" v:register
+    if a:direction == -1
+	let l:insLnum = line("'>")
+	let l:isUp = 0
+    else
+	let l:insLnum = line("'<")
+	let l:isUp = 1
+    endif
 
     call LineJuggler#Dup(
-    \   line("'<"),
+    \   l:insLnum,
     \   l:lines,
-    \   0, 0,
+    \   l:isUp, 1,
     \   l:count,
     \   a:mapSuffix
     \)
+endfunction
+
+function! s:RepFetch( startLnum, endLnum, lines, count, mapSuffix )
+    call s:Replace(a:startLnum, a:endLnum, a:lines, v:register)
+
+    silent! call       repeat#set("\<Plug>(LineJugglerRepFetch" . a:mapSuffix . ')', a:count)
+    silent! call visualrepeat#set("\<Plug>(LineJugglerRepFetch" . a:mapSuffix . ')', a:count)
+endfunction
+function! LineJuggler#RepFetch( count, direction, mapSuffix )
+    if a:direction == -1
+	let l:address = LineJuggler#ClipAddress(ingowindow#RelativeWindowLine(line('.'), a:count, -1), a:direction, 1)
+	if l:address == -1 | return | endif
+	let l:endAddress = LineJuggler#ClipAddress(ingowindow#RelativeWindowLine(line('.'), a:count, -1, 1), a:direction, 1)
+    else
+	let l:address = LineJuggler#ClipAddress(ingowindow#RelativeWindowLine(line('.'), a:count, 1, -1), a:direction, 1)
+	if l:address == -1 | return | endif
+	let l:endAddress = LineJuggler#ClipAddress(ingowindow#RelativeWindowLine(line('.'), a:count, 1), a:direction, 1)
+    endif
+    let l:sourceLines = getline(l:address, l:endAddress)
+
+    call s:RepFetch(LineJuggler#FoldClosed(), LineJuggler#FoldClosedEnd(), l:sourceLines, a:count, a:mapSuffix)
+endfunction
+function! LineJuggler#VisualRepFetch( direction, mapSuffix )
+    let l:count = v:count1
+    " With :<C-u>, we're always in the first line of the selection. To get the
+    " actual line of the cursor, we need to leave the visual selection. We
+    " cannot do that initially before invoking this function, since then the
+    " [count] would be lost. So do this now to get the current line.
+    execute "normal! gv\<C-\>\<C-n>"
+
+    let l:targetStartLnum = ingowindow#RelativeWindowLine(line('.'), l:count, a:direction, -1)
+    let l:lines = getline(l:targetStartLnum, ingowindow#RelativeWindowLine(l:targetStartLnum, line("'>") - line("'<"), 1))
+
+    call s:RepFetch(line("'<"), line("'>"), l:lines, l:count, a:mapSuffix)
 endfunction
 
 let &cpo = s:save_cpo

@@ -10,6 +10,13 @@
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 "
 " REVISION	DATE		REMARKS
+"   1.10.009    23-Jul-2012	CHG: Split [f and {Visual}[f behaviors into two
+"				families of mappings:
+"				a) [f to fetch below current line and {Visual}[f
+"				to fetch selected number of lines above/below
+"				selection
+"				b) [r to fetch and replace current line /
+"				selection.
 "   1.00.008	20-Jul-2012	FIX: Implement clipping for ]D.
 "   1.00.007	18-Jul-2012	Consolidate the separate LineJuggler#BlankUp() /
 "				LineJuggler#BlankDown() functions.
@@ -265,15 +272,12 @@ nnoremap <silent> <Plug>(LineJugglerDupFetchBelow) :<C-u>call setline('.', getli
 \   1,
 \   'FetchBelow'
 \)<CR>
-" Note: To repeat with the following line, we need to increase v:count by one.
 if ! hasmapto('<Plug>(LineJugglerDupFetchAbove)', 'n')
     nmap ]f <Plug>(LineJugglerDupFetchAbove)
 endif
 if ! hasmapto('<Plug>(LineJugglerDupFetchBelow)', 'n')
     nmap [f <Plug>(LineJugglerDupFetchBelow)
 endif
-
-
 
 vnoremap <silent> <Plug>(LineJugglerDupFetchAbove)   :<C-u>if !&ma<Bar><Bar>&ro<Bar>call setline('.', getline('.'))<Bar>endif<Bar>
 \call LineJuggler#VisualDupFetch(-1, 'FetchAbove')<CR>
@@ -284,6 +288,38 @@ if ! hasmapto('<Plug>(LineJugglerDupFetchAbove)', 'x')
 endif
 if ! hasmapto('<Plug>(LineJugglerDupFetchBelow)', 'x')
     xmap [f <Plug>(LineJugglerDupFetchBelow)
+endif
+
+
+
+nnoremap <silent> <Plug>(LineJugglerRepFetchAbove)   :<C-u>call setline('.', getline('.'))<Bar>
+\call LineJuggler#RepFetch(
+\   v:count1,
+\   -1,
+\   'Above'
+\)<CR>
+nnoremap <silent> <Plug>(LineJugglerRepFetchBelow) :<C-u>call setline('.', getline('.'))<Bar>
+\call LineJuggler#RepFetch(
+\   v:count1,
+\   1,
+\   'Below'
+\)<CR>
+if ! hasmapto('<Plug>(LineJugglerRepFetchAbove)', 'n')
+    nmap ]r <Plug>(LineJugglerRepFetchAbove)
+endif
+if ! hasmapto('<Plug>(LineJugglerRepFetchBelow)', 'n')
+    nmap [r <Plug>(LineJugglerRepFetchBelow)
+endif
+
+vnoremap <silent> <Plug>(LineJugglerRepFetchAbove)   :<C-u>if !&ma<Bar><Bar>&ro<Bar>call setline('.', getline('.'))<Bar>endif<Bar>
+\call LineJuggler#VisualRepFetch(-1, 'Above')<CR>
+vnoremap <silent> <Plug>(LineJugglerRepFetchBelow)   :<C-u>if !&ma<Bar><Bar>&ro<Bar>call setline('.', getline('.'))<Bar>endif<Bar>
+\call LineJuggler#VisualRepFetch( 1, 'Below')<CR>
+if ! hasmapto('<Plug>(LineJugglerRepFetchAbove)', 'x')
+    xmap ]r <Plug>(LineJugglerRepFetchAbove)
+endif
+if ! hasmapto('<Plug>(LineJugglerRepFetchBelow)', 'x')
+    xmap [r <Plug>(LineJugglerRepFetchBelow)
 endif
 
 let &cpo = s:save_cpo
