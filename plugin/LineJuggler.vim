@@ -10,6 +10,10 @@
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 "
 " REVISION	DATE		REMARKS
+"   1.20.010	27-Jul-2012	Adapt [d and [D mappings to restructured and
+"				changed implementation with
+"				LineJuggler#DupToOffset().
+"				FIX: Correct repeat of ]E.
 "   1.10.009    23-Jul-2012	CHG: Split [f and {Visual}[f behaviors into two
 "				families of mappings:
 "				a) [f to fetch below current line and {Visual}[f
@@ -147,7 +151,7 @@ nnoremap <silent> <Plug>(LineJugglerSwapDown)   :<C-u>call setline('.', getline(
 \   ingowindow#RelativeWindowLine(line('.'), v:count1,  1),
 \   v:count1,
 \   1,
-\   'Up'
+\   'Down'
 \)<CR>
 vnoremap <silent> <Plug>(LineJugglerSwapUp)   :<C-u>call setline('.', getline('.'))<Bar>
 \call LineJuggler#VisualSwap(-1, 'Up')<CR>
@@ -170,38 +174,26 @@ endif
 
 nnoremap <silent> <Plug>(LineJugglerDupOverUp)   :<C-u>call setline('.', getline('.'))<Bar>
 \call LineJuggler#Dup(
-\   LineJuggler#FoldClosed(),
-\   getline(LineJuggler#FoldClosed(), LineJuggler#FoldClosedEnd()),
-\   1,
-\   v:count1,
-\   v:count1,
+\   -1,
+\   v:count,
 \   'OverUp'
 \)<CR>
 nnoremap <silent> <Plug>(LineJugglerDupOverDown) :<C-u>call setline('.', getline('.'))<Bar>
 \call LineJuggler#Dup(
-\   LineJuggler#FoldClosedEnd(),
-\   getline(LineJuggler#FoldClosed(), LineJuggler#FoldClosedEnd()),
-\   0,
-\   v:count1,
-\   v:count1,
+\   1,
+\   v:count,
 \   'OverDown'
 \)<CR>
 vnoremap <silent> <Plug>(LineJugglerDupOverUp)   :<C-u>call setline('.', getline('.'))<Bar>
-\call LineJuggler#Dup(
-\   line("'<"),
-\   getline("'<", "'>"),
-\   1,
-\   v:count1,
-\   v:count1,
+\call LineJuggler#VisualDup(
+\   -1,
+\   v:count,
 \   'OverUp'
 \)<CR>
 vnoremap <silent> <Plug>(LineJugglerDupOverDown) :<C-u>call setline('.', getline('.'))<Bar>
-\call LineJuggler#Dup(
-\   line("'>"),
-\   getline("'<", "'>"),
-\   0,
-\   v:count1,
-\   v:count1,
+\call LineJuggler#VisualDup(
+\   1,
+\   v:count,
 \   'OverDown'
 \)<CR>
 if ! hasmapto('<Plug>(LineJugglerDupOverUp)', 'n')
@@ -232,14 +224,14 @@ nnoremap <silent> <Plug>(LineJugglerDupRangeDown) :<C-u>call setline('.', getlin
 \   'RangeDown'
 \)<CR>
 vnoremap <silent> <Plug>(LineJugglerDupRangeUp)   :<C-u>call setline('.', getline('.'))<Bar>
-\call LineJuggler#Dup(
+\call LineJuggler#DupToOffset(
 \   line("'<"),
 \   repeat(getline("'<", "'>"), v:count1),
 \   1, 1, v:count1,
 \   'RangeUp'
 \)<CR>
 vnoremap <silent> <Plug>(LineJugglerDupRangeDown) :<C-u>call setline('.', getline('.'))<Bar>
-\call LineJuggler#Dup(
+\call LineJuggler#DupToOffset(
 \   line("'>"),
 \   repeat(getline("'<", "'>"), v:count1),
 \   0, 1, v:count1,
