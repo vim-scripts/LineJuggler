@@ -2,6 +2,7 @@
 "
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 " REVISION	DATE		REMARKS
+"	019	02-Sep-2012	Add ingowindow#NextVisibleLine().
 "	018	12-Jul-2012	Add optional a:folddirection to
 "				ingowindow#RelativeWindowLine().
 "	017	11-Jul-2012	Add ingowindow#RelativeWindowLine().
@@ -288,6 +289,34 @@ function! ingowindow#RelativeWindowLine( lnum, count, direction, ... )
     endwhile
 
     return s:FoldBorder(l:lnum, (a:0 ? a:1 : a:direction))
+endfunction
+function! ingowindow#NextVisibleLine( lnum, direction )
+"******************************************************************************
+"* PURPOSE:
+"   Determine the line number of the next visible (i.e. not folded) line.
+"* ASSUMPTIONS / PRECONDITIONS:
+"   None.
+"* EFFECTS / POSTCONDITIONS:
+"   None.
+"* INPUTS:
+"   a:lnum  Line number to base the calculation on. When this one isn't folded,
+"	    it is returned.
+"   a:direction -1 for upward, 1 for downward relative movement
+"* RETURN VALUES:
+"   line number, of -1 if there is no more visible line in that direction of the
+"   buffer.
+"******************************************************************************
+    let l:lnum = a:lnum
+    while l:lnum > 0 && l:lnum <= line('$')
+	let l:borderLnum = (a:direction < 0 ? foldclosed(l:lnum) : foldclosedend(l:lnum))
+	if l:borderLnum == -1
+	    return l:lnum
+	else
+	    let l:lnum = l:borderLnum + a:direction
+	endif
+    endwhile
+
+    return -1
 endfunction
 
 
