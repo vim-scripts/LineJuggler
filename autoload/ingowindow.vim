@@ -2,6 +2,12 @@
 "
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 " REVISION	DATE		REMARKS
+"	022	11-Dec-2012	Add ingowindow#WinSaveCurrentBuffer() /
+"				ingowindow#WinRestoreCurrentBuffer().
+"	021	25-Nov-2012	Add ingowindow#GetClosedFolds() function.
+"	020	17-Sep-2012	Move g:previewwindowsplitmode to the front of
+"				the command to allow multiple commands joined
+"				with cmd1 | winsplitcmd2.
 "	019	02-Sep-2012	Add ingowindow#NextVisibleLine().
 "	018	12-Jul-2012	Add optional a:folddirection to
 "				ingowindow#RelativeWindowLine().
@@ -121,7 +127,7 @@ function! ingowindow#OpenPreview( ... )
 	wincmd P
     catch /^Vim\%((\a\+)\)\=:E441/
 	" Else, temporarily open a dummy file. (There's no :popen command.)
-	execute 'silent' (a:0 ? a:1 : '') (exists('g:previewwindowsplitmode') ? g:previewwindowsplitmode : '') 'pedit +setlocal\ buftype=nofile\ bufhidden=wipe\ nobuflisted\ noswapfile [No\ Name]'
+	execute 'silent' (exists('g:previewwindowsplitmode') ? g:previewwindowsplitmode : '') (a:0 ? a:1 : '') 'pedit +setlocal\ buftype=nofile\ bufhidden=wipe\ nobuflisted\ noswapfile [No\ Name]'
 	wincmd P
     endtry
 endfunction
@@ -320,6 +326,35 @@ function! ingowindow#NextVisibleLine( lnum, direction )
 endfunction
 
 
+function! ingowindow#GetClosedFolds( startLnum, endLnum )
+"******************************************************************************
+"* PURPOSE:
+"   Determine the ranges of closed folds within the passed range.
+"* ASSUMPTIONS / PRECONDITIONS:
+"   None.
+"* EFFECTS / POSTCONDITIONS:
+"   None.
+"* INPUTS:
+"   a:startLnum First line of the range.
+"   a:endLnum   Last line of the range.
+"* RETURN VALUES:
+"   List of [foldStartLnum, foldEndLnum] elements.
+"******************************************************************************
+    let l:folds = []
+    let l:lnum = a:startLnum
+    while l:lnum <= a:endLnum
+	let l:foldEndLnum = foldclosedend(l:lnum)
+	if l:foldEndLnum == -1
+	    let l:lnum += 1
+	else
+	    call add(l:folds, [l:lnum, l:foldEndLnum])
+	    let l:lnum = l:foldEndLnum + 1
+	endif
+    endwhile
+    return l:folds
+endfunction
+
+
 " Determine the number of lines in the passed range that lie hidden in a closed
 " fold; that is, everything but the first line of a closed fold.
 " Returns [ number of folds in range, number of folded away (i.e. invisible)
@@ -437,6 +472,48 @@ endfunction
 " available for displaying buffer contents.
 function! ingowindow#NetWindowWidth()
     return winwidth(0) - ingowindow#WindowDecorationColumns()
+endfunction
+
+
+
+" Record the current buffer's window and try to later return exactly to the same
+" window, even if in the meantime, windows have been added or removed. This is
+" an enhanced version of bufwinnr(), which will always yield the _first_ window
+" containing a buffer.
+function! ingowindow#WinSaveCurrentBuffer()
+    let l:buffersUpToCurrent = tabpagebuflist()[0 : winnr() - 1]
+    let l:occurrenceCnt= len(filter(l:buffersUpToCurrent, 'v:val == bufnr("")'))
+    return {'bufnr': bufnr(''), 'occurrenceCnt': l:occurrenceCnt}
+endfunction
+function! ingowindow#WinRestoreCurrentBuffer( dict )
+    let l:targetWinNr = -1
+
+    if a:dict.occurrenceCnt == 1
+	" We want the first occurrence of the buffer, bufwinnr() can do this for
+	" us.
+	let l:targetWinNr = bufwinnr(a:dict.bufnr)
+    else
+	" Go through all windows and find the N'th window containing our buffer.
+	let l:winNrs = []
+	for l:winNr in range(1, winnr('$'))
+	    if winbufnr(l:winNr) == a:dict.bufnr
+		call add(l:winNrs, l:winNr)
+	    endif
+	endfor
+
+	if len(l:winNrs) < a:dict.occurrenceCnt
+	    " There are less windows showing that buffer now; choose the last.
+	    let l:targetWinNr = l:winNrs[-1]
+	else
+	    let l:targetWinNr = l:winNrs[a:dict.occurrenceCnt - 1]
+	endif
+    endif
+
+    if l:targetWinNr == -1
+	throw printf('WinRestoreCurrentBuffer: target buffer %d not found', a:dict.bufnr)
+    endif
+
+    execute l:targetWinNr . 'wincmd w'
 endfunction
 
 " vim: set ts=8 sts=4 sw=4 noexpandtab ff=unix fdm=syntax :

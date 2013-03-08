@@ -155,6 +155,10 @@ IDEAS							   *LineJuggler-ideas*
 ==============================================================================
 HISTORY							 *LineJuggler-history*
 
+1.22	08-Mar-2013
+- Expose s:DoSwap() as LineJuggler#SwapRanges() for use with the companion
+  LineJugglerCommands.vim plugin.
+
 1.21	03-Sep-2012
 - Avoid clobbering the expression register.
 
@@ -185,7 +189,7 @@ Initial release.
 Started development.
 
 ==============================================================================
-Copyright: (C) 2012 Ingo Karkat
+Copyright: (C) 2012-2013 Ingo Karkat
 The VIM LICENSE applies to this script; see |copyright|.
 
 Maintainer:	Ingo Karkat <ingo@karkat.de>
