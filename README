@@ -13,7 +13,6 @@ Oftentimes, duplication in source code is a code smell. Please use this plugin
 responsibly ;-)
 
 SEE ALSO
-
 - The swap functionality of the plugin's [E / ]E mappings are also
   available as an Ex :Swap command, provided by the companion
   LineJugglerCommands.vim plugin (vimscript #4465).
@@ -23,6 +22,8 @@ RELATED WORKS
   Tim Pope's unimpaired.vim plugin (vimscript #1590). In addition, unimpaired
   provides other, unrelated functionality (all via [... / ]... mappings), but
   doesn't offer customization of the mappings.
+- textmanip.vim (vimscript #3491) provides mappings to move and duplicate
+  (selected / current) line(s).
 
 USAGE
 [<Space>                Add [count] blank lines above the current line / above

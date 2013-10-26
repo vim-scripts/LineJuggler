@@ -25,12 +25,20 @@ visible in the current window.
 Oftentimes, duplication in source code is a code smell. Please use this plugin
 responsibly ;-)
 
+SEE ALSO								     *
+
+- The swap functionality of the plugin's |[E| / |]E| mappings are also
+  available as an Ex |:Swap| command, provided by the companion
+  |LineJugglerCommands.vim| plugin (vimscript #4465).
+
 RELATED WORKS								     *
 
 - Idea, design and implementation of the [<Space> and [e mappings are based on
   Tim Pope's unimpaired.vim plugin (vimscript #1590). In addition, unimpaired
   provides other, unrelated functionality (all via [... / ]... mappings), but
   doesn't offer customization of the mappings.
+- textmanip.vim (vimscript #3491) provides mappings to move and duplicate
+  (selected / current) line(s).
 
 ==============================================================================
 USAGE							   *LineJuggler-usage*
@@ -129,6 +137,8 @@ To uninstall, use the |:RmVimball| command.
 DEPENDENCIES					    *LineJuggler-dependencies*
 
 - Requires Vim 7.0 or higher.
+- Requires the |ingo-library.vim| plugin (vimscript #4433), version 1.004 or
+  higher.
 - repeat.vim (vimscript #2136) plugin (optional)
 - visualrepeat.vim (vimscript #3848) plugin (optional)
 
@@ -154,6 +164,12 @@ IDEAS							   *LineJuggler-ideas*
 
 ==============================================================================
 HISTORY							 *LineJuggler-history*
+
+1.23	26-Oct-2013
+- Add message "N lines swapped with M lines" on [E / ]E.
+- Add message "Replaced N lines" for [r / ]r.
+- Add dependency to ingo-library (vimscript #4433). *** You need to separately
+  install ingo-library (vimscript #4433) version 1.004 (or higher)! ***
 
 1.22	08-Mar-2013
 - Expose s:DoSwap() as LineJuggler#SwapRanges() for use with the companion
@@ -190,7 +206,7 @@ Started development.
 
 ==============================================================================
 Copyright: (C) 2012-2013 Ingo Karkat
-The VIM LICENSE applies to this script; see |copyright|.
+The VIM LICENSE applies to this plugin; see |copyright|.
 
 Maintainer:	Ingo Karkat <ingo@karkat.de>
 ==============================================================================
