@@ -28,11 +28,22 @@ RELATED WORKS
 USAGE
 [<Space>                Add [count] blank lines above the current line / above
                         the start of the selection.
+                        In a single-line characterwise-visual selection:
+                        Add [count] spaces before the start of the selection.
+
 ]<Space>                Add [count] blank lines below the current line / below
                         the end of the selection.
+                        In a single-line characterwise-visual selection:
+                        Add [count] spaces after the end of the selection.
 
 [e                      Move the current line / selection [count] lines above.
+
 ]e                      Move the current line / selection [count] lines below.
+                        In a single-line characterwise-visual selection:
+                        Move the selected text to the same start column
+                        [count] lines above / below (regardless of whether the
+                        target line is that long already; missing columns are
+                        filled up with spaces).
 
 [E                      Exchange the current line with the line / closed fold
                         [count] lines above.
@@ -41,6 +52,9 @@ USAGE
                         above.
 {Visual}[E              Exchange the selection with the same amount of visible
                         lines located [count] lines above.
+                        In a single-line characterwise-visual selection:
+                        Exchange the selected text with the same-sized
+                        area [count] lines above.
 ]E                      Exchange the current line with the line / closed fold
                         [count] lines below.
                         Exchange the current closed fold with the same amount
@@ -48,22 +62,35 @@ USAGE
                         below.
 {Visual}]E              Exchange the selection with the same amount of visible
                         lines located [count] lines below.
+                        In a single-line characterwise-visual selection:
+                        Exchange the selected text with the same-sized
+                        area [count] lines below.
 
 [d                      Duplicate the current line / selection directly
                         above / across [count] lines above the current line /
                         above the start of the selection.
+                        In a single-line characterwise-visual selection:
+                        Duplicate before the selection (to [count] characters
+                        before the start of the selection).
 ]d                      Duplicate the current line / selection directly
                         below / across [count] lines below the current line /
                         below the end of the selection.
+                        In a single-line characterwise-visual selection:
+                        Duplicate after the selection (to [count] characters
+                        after the end of the selection).
 
 [D                      Duplicate the current  / [count] lines to above the
                         current line.
 {Visual}[D              Duplicate the selection [count] times above the
                         selection.
+                        In a single-line characterwise-visual selection:
+                        Duplicate before the selection [count] times.
 ]D                      Duplicate the current  / [count] lines to below that
                         range.
 {Visual}]D              Duplicate the selection [count] times below the
                         selection.
+                        In a single-line characterwise-visual selection:
+                        Duplicate after the selection [count] times.
 
 [f                      Fetch the line [count] visible lines below the current
                         line and duplicate it below the current line.
@@ -86,7 +113,9 @@ USAGE
 {Visual}]r              Replace the selection with the same number of visible
                         lines fetched starting from the line [count] lines
                         above the current line.
-
+                        In a single-line characterwise-visual selection:
+                        Replace the selected text with the same-sized
+                        area [count] lines below / above.
 
                         When the cursor is on a closed fold or the selection
                         contains a closed fold, the entire set of folded lines

@@ -10,6 +10,27 @@
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 "
 " REVISION	DATE		REMARKS
+"   2.00.016	12-Nov-2013	Implement characterwise selection blank with
+"				[<Space>, ]<Space>.
+"   2.00.015	11-Nov-2013	Implement characterwise selection swap with [E,
+"				]E.
+"				Implement characterwise selection fetch and
+"				replace with [r, ]r.
+"   2.00.014	30-Oct-2013	Implement normal-mode repeat behavior for
+"				intra-line dups at another line.
+"   			    	Move the repeated normal mode repeat logic to
+"   			    	the autoload script.
+"   2.00.013	29-Oct-2013	Add dedicated LineJuggler#VisualDupRange() for
+"				the special visual intra-line handling for
+"				[D / ]D.
+"				Add special <Plug>(LineJugglerDupIntra...)
+"				mappings for the normal mode repeat of
+"				intra-line duplications.
+"				Add special <Plug>(LineJugglerMoveIntra...)
+"				mappings for the normal mode repeat of
+"				intra-line moves.
+"   1.30.012	27-Oct-2013	Explicitly pass v:count1 everywhere, it saves a
+"				variable assignment inside the functions.
 "   1.23.011	08-Apr-2013	Move ingowindow.vim functions into ingo-library.
 "   1.20.010	27-Jul-2012	Adapt [d and [D mappings to restructured and
 "				changed implementation with
@@ -86,8 +107,8 @@ set cpo&vim
 
 nnoremap <silent> <Plug>(LineJugglerBlankUp)   :<C-u>call setline('.', getline('.'))<Bar>call LineJuggler#Blank('', v:count1, -1, 'Up')<CR>
 nnoremap <silent> <Plug>(LineJugglerBlankDown) :<C-u>call setline('.', getline('.'))<Bar>call LineJuggler#Blank('', v:count1,  1, 'Down')<CR>
-vnoremap <silent> <Plug>(LineJugglerBlankUp)   :<C-u>call setline('.', getline('.'))<Bar>call LineJuggler#VisualBlank("'<", -1, 'Up')<CR>
-vnoremap <silent> <Plug>(LineJugglerBlankDown) :<C-u>call setline('.', getline('.'))<Bar>call LineJuggler#VisualBlank("'>",  1, 'Down')<CR>
+vnoremap <silent> <Plug>(LineJugglerBlankUp)   :<C-u>call setline('.', getline('.'))<Bar>call LineJuggler#VisualBlank("'<", -1, v:count1, 'Up')<CR>
+vnoremap <silent> <Plug>(LineJugglerBlankDown) :<C-u>call setline('.', getline('.'))<Bar>call LineJuggler#VisualBlank("'>",  1, v:count1, 'Down')<CR>
 if ! hasmapto('<Plug>(LineJugglerBlankUp)', 'n')
     nmap [<Space> <Plug>(LineJugglerBlankUp)
 endif
@@ -100,6 +121,12 @@ endif
 if ! hasmapto('<Plug>(LineJugglerBlankDown)', 'x')
     xmap ]<Space> <Plug>(LineJugglerBlankDown)
 endif
+" When repeating, add the same-sized blank area from the current position.
+" Don't repeat on a closed fold.
+nnoremap <silent> <Plug>(LineJugglerBlankIntraUp)   :<C-u>call setline('.', getline('.'))<Bar>
+\call LineJuggler#IntraLine#BlankRepeat(-1, v:count1, 'Up')<CR>
+nnoremap <silent> <Plug>(LineJugglerBlankIntraDown) :<C-u>call setline('.', getline('.'))<Bar>
+\call LineJuggler#IntraLine#BlankRepeat( 1, v:count1, 'Down')<CR>
 
 
 
@@ -120,9 +147,9 @@ nnoremap <silent> <Plug>(LineJugglerMoveDown) :<C-u>if !&ma<Bar><Bar>&ro<Bar>cal
 \   'Down'
 \)<CR>
 vnoremap <silent> <Plug>(LineJugglerMoveUp)   :<C-u>if !&ma<Bar><Bar>&ro<Bar>call setline('.', getline('.'))<Bar>endif<Bar>
-\call LineJuggler#VisualMove(-1, 'Up')<CR>
+\call LineJuggler#VisualMove(-1, v:count1, 'Up')<CR>
 vnoremap <silent> <Plug>(LineJugglerMoveDown) :<C-u>if !&ma<Bar><Bar>&ro<Bar>call setline('.', getline('.'))<Bar>endif<Bar>
-\call LineJuggler#VisualMove( 1, 'Down')<CR>
+\call LineJuggler#VisualMove( 1, v:count1, 'Down')<CR>
 if ! hasmapto('<Plug>(LineJugglerMoveUp)', 'n')
     nmap [e <Plug>(LineJugglerMoveUp)
 endif
@@ -135,6 +162,15 @@ endif
 if ! hasmapto('<Plug>(LineJugglerMoveDown)', 'x')
     xmap ]e <Plug>(LineJugglerMoveDown)
 endif
+" When repeating from the same position as left by a previous mapping
+" invocation, re-use the same selection again, i.e. move the same text further.
+" Elsewhere, move a same-sized selection starting from the current position.
+" Don't repeat on a closed fold; just grabbing any invisible part from it is as
+" bad as suddenly turning this into a regular, full-line move.
+nnoremap <silent> <Plug>(LineJugglerMoveIntraUp)   :<C-u>if !&ma<Bar><Bar>&ro<Bar>call setline('.', getline('.'))<Bar>endif<Bar>
+\call LineJuggler#IntraLine#MoveRepeat(-1, v:count1, 'Up')<CR>
+nnoremap <silent> <Plug>(LineJugglerMoveIntraDown) :<C-u>if !&ma<Bar><Bar>&ro<Bar>call setline('.', getline('.'))<Bar>endif<Bar>
+\call LineJuggler#IntraLine#MoveRepeat( 1, v:count1, 'Down')<CR>
 
 
 
@@ -155,9 +191,9 @@ nnoremap <silent> <Plug>(LineJugglerSwapDown)   :<C-u>call setline('.', getline(
 \   'Down'
 \)<CR>
 vnoremap <silent> <Plug>(LineJugglerSwapUp)   :<C-u>call setline('.', getline('.'))<Bar>
-\call LineJuggler#VisualSwap(-1, 'Up')<CR>
+\call LineJuggler#VisualSwap(-1, v:count1, 'Up')<CR>
 vnoremap <silent> <Plug>(LineJugglerSwapDown) :<C-u>call setline('.', getline('.'))<Bar>
-\call LineJuggler#VisualSwap( 1, 'Down')<CR>
+\call LineJuggler#VisualSwap( 1, v:count1, 'Down')<CR>
 if ! hasmapto('<Plug>(LineJugglerSwapUp)', 'n')
     nmap [E <Plug>(LineJugglerSwapUp)
 endif
@@ -170,6 +206,15 @@ endif
 if ! hasmapto('<Plug>(LineJugglerSwapDown)', 'x')
     xmap ]E <Plug>(LineJugglerSwapDown)
 endif
+" When repeating from the same position as left by a previous mapping
+" invocation, re-use the same selection again, i.e. swap the same text further.
+" Elsewhere, swap a same-sized selection starting from the current position.
+" Don't repeat on a closed fold; just grabbing any invisible part from it is as
+" bad as suddenly turning this into a regular, full-line move.
+nnoremap <silent> <Plug>(LineJugglerSwapIntraUp)   :<C-u>if !&ma<Bar><Bar>&ro<Bar>call setline('.', getline('.'))<Bar>endif<Bar>
+\call LineJuggler#IntraLine#SwapRepeat(-1, v:count1, 'Up')<CR>
+nnoremap <silent> <Plug>(LineJugglerSwapIntraDown) :<C-u>if !&ma<Bar><Bar>&ro<Bar>call setline('.', getline('.'))<Bar>endif<Bar>
+\call LineJuggler#IntraLine#SwapRepeat( 1, v:count1, 'Down')<CR>
 
 
 
@@ -209,6 +254,15 @@ endif
 if ! hasmapto('<Plug>(LineJugglerDupOverDown)', 'x')
     xmap ]d <Plug>(LineJugglerDupOverDown)
 endif
+" When repeating from the same position as left by a previous mapping
+" invocation, simply duplicate the same text again.
+" Elsewhere, move a same-sized selection starting from the current position.
+" Don't repeat on a closed fold; just grabbing any invisible part from it is as
+" bad as suddenly turning this into a regular, full-line dup.
+nnoremap <silent> <Plug>(LineJugglerDupIntraOverUp)   :<C-u>call setline('.', getline('.'))<Bar>
+\call LineJuggler#IntraLine#DupRepeat('LineJuggler#VisualDup', -1, v:count, 'OverUp')<CR>
+nnoremap <silent> <Plug>(LineJugglerDupIntraOverDown) :<C-u>call setline('.', getline('.'))<Bar>
+\call LineJuggler#IntraLine#DupRepeat('LineJuggler#VisualDup',  1, v:count, 'OverDown')<CR>
 
 
 
@@ -225,16 +279,14 @@ nnoremap <silent> <Plug>(LineJugglerDupRangeDown) :<C-u>call setline('.', getlin
 \   'RangeDown'
 \)<CR>
 vnoremap <silent> <Plug>(LineJugglerDupRangeUp)   :<C-u>call setline('.', getline('.'))<Bar>
-\call LineJuggler#DupToOffset(
+\call LineJuggler#VisualDupRange(
 \   line("'<"),
-\   repeat(getline("'<", "'>"), v:count1),
 \   1, 1, v:count1,
 \   'RangeUp'
 \)<CR>
 vnoremap <silent> <Plug>(LineJugglerDupRangeDown) :<C-u>call setline('.', getline('.'))<Bar>
-\call LineJuggler#DupToOffset(
+\call LineJuggler#VisualDupRange(
 \   line("'>"),
-\   repeat(getline("'<", "'>"), v:count1),
 \   0, 1, v:count1,
 \   'RangeDown'
 \)<CR>
@@ -250,6 +302,15 @@ endif
 if ! hasmapto('<Plug>(LineJugglerDupRangeDown)', 'x')
     xmap ]D <Plug>(LineJugglerDupRangeDown)
 endif
+" When repeating from the same position as left by a previous mapping
+" invocation, simply duplicate the same text again.
+" Elsewhere, move a same-sized selection starting from the current position.
+" Don't repeat on a closed fold; just grabbing any invisible part from it is as
+" bad as suddenly turning this into a regular, full-line dup.
+nnoremap <silent> <Plug>(LineJugglerDupIntraRangeUp)   :<C-u>call setline('.', getline('.'))<Bar>
+\call LineJuggler#IntraLine#DupRepeat('LineJuggler#VisualDupRange', line("'<"), 1, 1, v:count1, 'RangeUp')<CR>
+nnoremap <silent> <Plug>(LineJugglerDupIntraRangeDown) :<C-u>call setline('.', getline('.'))<Bar>
+\call LineJuggler#IntraLine#DupRepeat('LineJuggler#VisualDupRange', line("'<"), 0, 1, v:count1, 'RangeDown')<CR>
 
 
 
@@ -273,9 +334,9 @@ if ! hasmapto('<Plug>(LineJugglerDupFetchBelow)', 'n')
 endif
 
 vnoremap <silent> <Plug>(LineJugglerDupFetchAbove)   :<C-u>if !&ma<Bar><Bar>&ro<Bar>call setline('.', getline('.'))<Bar>endif<Bar>
-\call LineJuggler#VisualDupFetch(-1, 'FetchAbove')<CR>
+\call LineJuggler#VisualDupFetch(-1, v:count1, 'FetchAbove')<CR>
 vnoremap <silent> <Plug>(LineJugglerDupFetchBelow)   :<C-u>if !&ma<Bar><Bar>&ro<Bar>call setline('.', getline('.'))<Bar>endif<Bar>
-\call LineJuggler#VisualDupFetch( 1, 'FetchBelow')<CR>
+\call LineJuggler#VisualDupFetch( 1, v:count1, 'FetchBelow')<CR>
 if ! hasmapto('<Plug>(LineJugglerDupFetchAbove)', 'x')
     xmap ]f <Plug>(LineJugglerDupFetchAbove)
 endif
@@ -305,15 +366,23 @@ if ! hasmapto('<Plug>(LineJugglerRepFetchBelow)', 'n')
 endif
 
 vnoremap <silent> <Plug>(LineJugglerRepFetchAbove)   :<C-u>if !&ma<Bar><Bar>&ro<Bar>call setline('.', getline('.'))<Bar>endif<Bar>
-\call LineJuggler#VisualRepFetch(-1, 'Above')<CR>
+\call LineJuggler#VisualRepFetch(-1, v:count1, 'Above')<CR>
 vnoremap <silent> <Plug>(LineJugglerRepFetchBelow)   :<C-u>if !&ma<Bar><Bar>&ro<Bar>call setline('.', getline('.'))<Bar>endif<Bar>
-\call LineJuggler#VisualRepFetch( 1, 'Below')<CR>
+\call LineJuggler#VisualRepFetch( 1, v:count1, 'Below')<CR>
 if ! hasmapto('<Plug>(LineJugglerRepFetchAbove)', 'x')
     xmap ]r <Plug>(LineJugglerRepFetchAbove)
 endif
 if ! hasmapto('<Plug>(LineJugglerRepFetchBelow)', 'x')
     xmap [r <Plug>(LineJugglerRepFetchBelow)
 endif
+" When repeating, replace a same-sized selection starting from the current
+" position.
+" Don't repeat on a closed fold; just grabbing any invisible part from it is as
+" bad as suddenly turning this into a regular, full-line move.
+nnoremap <silent> <Plug>(LineJugglerRepFetchIntraAbove) :<C-u>if !&ma<Bar><Bar>&ro<Bar>call setline('.', getline('.'))<Bar>endif<Bar>
+\call LineJuggler#IntraLine#RepFetchRepeat(-1, v:count1, 'Above')<CR>
+nnoremap <silent> <Plug>(LineJugglerRepFetchIntraBelow) :<C-u>if !&ma<Bar><Bar>&ro<Bar>call setline('.', getline('.'))<Bar>endif<Bar>
+\call LineJuggler#IntraLine#RepFetchRepeat( 1, v:count1, 'Below')<CR>
 
 let &cpo = s:save_cpo
 unlet s:save_cpo
