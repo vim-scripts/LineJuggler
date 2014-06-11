@@ -4,12 +4,18 @@
 "   - LineJuggler.vim autoload script
 "   - ingo/folds.vim autoload script
 "
-" Copyright: (C) 2012-2013 Ingo Karkat
+" Copyright: (C) 2012-2014 Ingo Karkat
 "   The VIM LICENSE applies to this script; see ':help copyright'.
 "
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 "
 " REVISION	DATE		REMARKS
+"   2.10.017	02-Jun-2014	ENH: Add combination mappings of ]d and ]D that
+"				can specify both a number of lines and a number
+"				of skipped lines (one limited to a small range
+"				of 1..9) to handle the often-needed use case of
+"				duplicating a few lines with a little offset,
+"				without having to go through visual mode and ]D.
 "   2.00.016	12-Nov-2013	Implement characterwise selection blank with
 "				[<Space>, ]<Space>.
 "   2.00.015	11-Nov-2013	Implement characterwise selection swap with [E,
@@ -102,6 +108,16 @@ endif
 let g:loaded_LineJuggler = 1
 let s:save_cpo = &cpo
 set cpo&vim
+
+"- configuration ---------------------------------------------------------------
+
+if ! exists('g:LineJuggler_DupRangeOver')
+    let g:LineJuggler_DupRangeOver= [9, '[%dD', ']%dD']
+endif
+if ! exists('g:LineJuggler_DupOverRange')
+    let g:LineJuggler_DupOverRange= [9, '[%dd', ']%dd']
+endif
+
 
 "- mappings --------------------------------------------------------------------
 
@@ -264,6 +280,31 @@ nnoremap <silent> <Plug>(LineJugglerDupIntraOverUp)   :<C-u>call setline('.', ge
 nnoremap <silent> <Plug>(LineJugglerDupIntraOverDown) :<C-u>call setline('.', getline('.'))<Bar>
 \call LineJuggler#IntraLine#DupRepeat('LineJuggler#VisualDup',  1, v:count, 'OverDown')<CR>
 
+for s:cnt in range(1, g:LineJuggler_DupOverRange[0])
+    execute printf("nnoremap <silent> <Plug>(LineJugglerDupOverRange%dUp)" .
+    \" :<C-u>call setline('.', getline('.'))<Bar>" .
+    \"call LineJuggler#DupRangeOver(" .
+    \   "%d," .
+    \   "v:count1," .
+    \   "-1," .
+    \   "'OverRange%dUp'," .
+    \   "v:count1" .
+    \")<CR>",
+    \   s:cnt, s:cnt, s:cnt)
+    execute printf("nnoremap <silent> <Plug>(LineJugglerDupOverRange%dDown)" .
+    \" :<C-u>call setline('.', getline('.'))<Bar>" .
+    \"call LineJuggler#DupRangeOver(" .
+    \   "%d," .
+    \   "v:count1," .
+    \   "1," .
+    \   "'OverRange%dDown'," .
+    \   "v:count1" .
+    \")<CR>",
+    \   s:cnt, s:cnt, s:cnt)
+    execute printf('nmap ' . g:LineJuggler_DupOverRange[1] . ' <Plug>(LineJugglerDupOverRange%dUp)',   s:cnt, s:cnt)
+    execute printf('nmap ' . g:LineJuggler_DupOverRange[2] . ' <Plug>(LineJugglerDupOverRange%dDown)', s:cnt, s:cnt)
+endfor
+
 
 
 nnoremap <silent> <Plug>(LineJugglerDupRangeUp)   :<C-u>call setline('.', getline('.'))<Bar>
@@ -311,6 +352,31 @@ nnoremap <silent> <Plug>(LineJugglerDupIntraRangeUp)   :<C-u>call setline('.', g
 \call LineJuggler#IntraLine#DupRepeat('LineJuggler#VisualDupRange', line("'<"), 1, 1, v:count1, 'RangeUp')<CR>
 nnoremap <silent> <Plug>(LineJugglerDupIntraRangeDown) :<C-u>call setline('.', getline('.'))<Bar>
 \call LineJuggler#IntraLine#DupRepeat('LineJuggler#VisualDupRange', line("'<"), 0, 1, v:count1, 'RangeDown')<CR>
+
+for s:cnt in range(1, g:LineJuggler_DupRangeOver[0])
+    execute printf("nnoremap <silent> <Plug>(LineJugglerDupRangeOver%dUp)" .
+    \" :<C-u>call setline('.', getline('.'))<Bar>" .
+    \"call LineJuggler#DupRangeOver(" .
+    \   "v:count1," .
+    \   "%d," .
+    \   "-1," .
+    \   "'RangeOver%dUp'," .
+    \   "v:count1" .
+    \")<CR>",
+    \   s:cnt, s:cnt, s:cnt)
+    execute printf("nnoremap <silent> <Plug>(LineJugglerDupRangeOver%dDown)" .
+    \" :<C-u>call setline('.', getline('.'))<Bar>" .
+    \"call LineJuggler#DupRangeOver(" .
+    \   "v:count1," .
+    \   "%d," .
+    \   "1," .
+    \   "'RangeOver%dDown'," .
+    \   "v:count1" .
+    \")<CR>",
+    \   s:cnt, s:cnt, s:cnt)
+    execute printf('nmap ' . g:LineJuggler_DupRangeOver[1] . ' <Plug>(LineJugglerDupRangeOver%dUp)',   s:cnt, s:cnt)
+    execute printf('nmap ' . g:LineJuggler_DupRangeOver[2] . ' <Plug>(LineJugglerDupRangeOver%dDown)', s:cnt, s:cnt)
+endfor
 
 
 
@@ -385,5 +451,5 @@ nnoremap <silent> <Plug>(LineJugglerRepFetchIntraBelow) :<C-u>if !&ma<Bar><Bar>&
 \call LineJuggler#IntraLine#RepFetchRepeat( 1, v:count1, 'Below')<CR>
 
 let &cpo = s:save_cpo
-unlet s:save_cpo
+unlet s:save_cpo s:cnt
 " vim: set ts=8 sts=4 sw=4 noexpandtab ff=unix fdm=syntax :

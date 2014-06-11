@@ -16,6 +16,11 @@ SEE ALSO
 - The swap functionality of the plugin's [E / ]E mappings are also
   available as an Ex :Swap command, provided by the companion
   LineJugglerCommands.vim plugin (vimscript #4465).
+- http://vim.wikia.com/wiki/Quickly_adding_and_deleting_empty_lines has
+  a simple implementation of the [<Space> mapping; it also offers mappings
+  that delete blank empty lines above / below the current line / selection
+  without changing the current position; these can complement the mappings
+  provided by this plugin.
 
 RELATED WORKS
 - Idea, design and implementation of the [<Space> and [e mappings are based on
@@ -24,6 +29,10 @@ RELATED WORKS
   doesn't offer customization of the mappings.
 - textmanip.vim (vimscript #3491) provides mappings to move and duplicate
   (selected / current) line(s).
+- upAndDown (vimscript #2586) provides mappings to move line(s) / selection up
+  or down.
+- move (vimscript #4687) also provides mappings to move lines / selection
+  around.
 
 USAGE
 [<Space>                Add [count] blank lines above the current line / above
@@ -78,6 +87,8 @@ USAGE
                         In a single-line characterwise-visual selection:
                         Duplicate after the selection (to [count] characters
                         after the end of the selection).
+[N][d{M}, [N]]d{M}      Duplicate {M} lines across [N] lines. A combination
+                        of [d and [D.
 
 [D                      Duplicate the current  / [count] lines to above the
                         current line.
@@ -91,6 +102,9 @@ USAGE
                         selection.
                         In a single-line characterwise-visual selection:
                         Duplicate after the selection [count] times.
+[N][D{M}, [N]]D{M}      Duplicate [N] lines across {M} lines. A combination
+                        of [d and [D. Equivalent to [N][d{M}, but with
+                        reverse order of the numbers.
 
 [f                      Fetch the line [count] visible lines below the current
                         line and duplicate it below the current line.

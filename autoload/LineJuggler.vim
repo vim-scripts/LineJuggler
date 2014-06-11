@@ -9,12 +9,23 @@
 "   - repeat.vim (vimscript #2136) autoload script (optional)
 "   - visualrepeat.vim (vimscript #3848) autoload script (optional)
 "
-" Copyright: (C) 2012-2013 Ingo Karkat
+" Copyright: (C) 2012-2014 Ingo Karkat
 "   The VIM LICENSE applies to this script; see ':help copyright'.
 "
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 "
 " REVISION	DATE		REMARKS
+"   2.10.023	11-Jun-2014	Expose (most of) s:RepFetch() as
+"				LineJuggler#ReplaceRanges() for use with the
+"				companion LineJugglerCommands.vim plugin.
+"				Echo message on replacement also when the number
+"				of source lines is greater than 'report'.
+"   2.10.022	02-Jun-2014	Need to pass separate a:repeatCount to
+"				LineJuggler#DupRangeOver() to get correct repeat
+"				value for [N][d{M}.
+"   2.10.021	01-Jun-2014	Add LineJuggler#DupRangeOver(), a combination of
+"				LineJuggler#Dup() and LineJuggler#DupRange()
+"				that takes both line count and offset.
 "   2.00.020	12-Nov-2013	Implement characterwise selection blank with
 "				[<Space>, ]<Space>.
 "				FIX: Don't use the (potentially adapted) fetch
@@ -203,7 +214,7 @@ function! LineJuggler#Move( range, address, count, direction, mapSuffix )
 	    keepjumps call setpos("''", getpos('.'))
 		execute a:range . 'move' l:address
 	    execute line("'`")
-    catch /^Vim\%((\a\+)\)\=:E/
+    catch /^Vim\%((\a\+)\)\=:/
 	execute "normal! \<C-\>\<C-n>\<Esc>" | " Beep.
 	call ingo#msg#VimExceptionMsg()
     finally
@@ -384,6 +395,27 @@ function! LineJuggler#VisualDupRange( insLnum, isUp, offset, count, mapSuffix )
     \)
 endfunction
 
+function! LineJuggler#DupRangeOver( lineCount, skipCount, direction, mapSuffix, repeatCount )
+    let l:address = LineJuggler#FoldClosed()
+    let l:endAddress = LineJuggler#ClipAddress(ingo#folds#RelativeWindowLine(line('.'), a:lineCount - 1, 1), a:direction, 1)
+    if l:endAddress == -1 | return | endif
+
+    if a:direction == -1
+	let l:insLnum = LineJuggler#ClipAddress(ingo#folds#RelativeWindowLine(l:address, a:skipCount, a:direction, -1), a:direction, 1)
+	let l:isUp = 1
+    else
+	let l:insLnum = LineJuggler#ClipAddress(ingo#folds#RelativeWindowLine(l:endAddress, a:skipCount, a:direction, -1), a:direction, 1)
+	let l:isUp = 0
+    endif
+
+    call LineJuggler#DupToOffset(
+    \   l:insLnum,
+    \   getline(l:address, l:endAddress),
+    \   l:isUp, 1, a:repeatCount,
+    \   a:mapSuffix
+    \)
+endfunction
+
 function! LineJuggler#DupFetch( count, direction, mapSuffix )
     if a:direction == -1
 	let l:address = LineJuggler#ClipAddress(ingo#folds#RelativeWindowLine(line('.'), a:count, -1), a:direction, 1)
@@ -438,17 +470,22 @@ function! LineJuggler#VisualDupFetch( direction, count, mapSuffix )
     \)
 endfunction
 
-function! s:RepFetch( startLnum, endLnum, lines, count, mapSuffix )
-    call ingo#lines#Replace(a:startLnum, a:endLnum, a:lines, v:register)
-    let l:lineNum = a:endLnum - a:startLnum + 1
-    if l:lineNum > &report
-	echomsg printf('Replaced %d line%s', l:lineNum, (l:lineNum == 1 ? '' : 's')) .
-	\   (len(a:lines) != l:lineNum ?
-	\       printf(' with %s line%s', len(a:lines), (len(a:lines) == 1 ? '' : 's')) :
+function! LineJuggler#ReplaceRanges( sourceStartLnum, sourceEndLnum, targetStartLnum, targetEndLnum, register )
+    let l:lines = getline(a:sourceStartLnum, a:sourceEndLnum)
+    call ingo#lines#Replace(a:targetStartLnum, a:targetEndLnum, l:lines, a:register)
+
+    let l:sourceLineNum = a:sourceEndLnum - a:sourceStartLnum + 1
+    let l:targetLineNum = a:targetEndLnum - a:targetStartLnum + 1
+    if l:sourceLineNum > &report || l:targetLineNum > &report
+	echomsg printf('Replaced %d line%s', l:targetLineNum, (l:targetLineNum == 1 ? '' : 's')) .
+	\   (l:sourceLineNum != l:targetLineNum ?
+	\       printf(' with %s line%s', l:sourceLineNum, (l:sourceLineNum == 1 ? '' : 's')) :
 	\       ''
 	\   )
     endif
-
+endfunction
+function! s:RepFetch( sourceStartLnum, sourceEndLnum, targetStartLnum, targetEndLnum, count, mapSuffix )
+    call LineJuggler#ReplaceRanges(a:sourceStartLnum, a:sourceEndLnum, a:targetStartLnum, a:targetEndLnum, v:register)
     call s:RepeatSet('RepFetch', a:count, a:mapSuffix)
 endfunction
 function! LineJuggler#RepFetch( count, direction, mapSuffix )
@@ -461,9 +498,8 @@ function! LineJuggler#RepFetch( count, direction, mapSuffix )
 	if l:address == -1 | return | endif
 	let l:endAddress = LineJuggler#ClipAddress(ingo#folds#RelativeWindowLine(line('.'), a:count, 1), a:direction, 1)
     endif
-    let l:sourceLines = getline(l:address, l:endAddress)
 
-    call s:RepFetch(LineJuggler#FoldClosed(), LineJuggler#FoldClosedEnd(), l:sourceLines, a:count, a:mapSuffix)
+    call s:RepFetch(l:address, l:endAddress, LineJuggler#FoldClosed(), LineJuggler#FoldClosedEnd(), a:count, a:mapSuffix)
 endfunction
 function! LineJuggler#VisualRepFetch( direction, count, mapSuffix )
     let l:visibleSelectedLineCnt = ingo#window#dimensions#NetVisibleLines(line("'<"), line("'>"))
@@ -480,9 +516,8 @@ function! LineJuggler#VisualRepFetch( direction, count, mapSuffix )
     \   1, (a:direction == -1 ? line('$') : ingo#folds#RelativeWindowLine(line('$'), (l:visibleSelectedLineCnt - 1), -1, -1))
     \)
     let l:targetEndLnum   = LineJuggler#ClipAddress(ingo#folds#RelativeWindowLine(l:targetStartLnum, (l:visibleSelectedLineCnt - 1), 1), a:direction, 1)
-    let l:lines = getline(l:targetStartLnum, l:targetEndLnum)
 
-    call s:RepFetch(line("'<"), line("'>"), l:lines, a:count, a:mapSuffix)
+    call s:RepFetch(l:targetStartLnum, l:targetEndLnum, line("'<"), line("'>"), a:count, a:mapSuffix)
 endfunction
 
 let &cpo = s:save_cpo
